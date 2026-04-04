@@ -3,10 +3,6 @@ from django.db import models
 from django.conf import settings
 from Product.models import Product
 
-
-
-
-
 from django.db import models
 from django.conf import settings
 from accounts.models import Address

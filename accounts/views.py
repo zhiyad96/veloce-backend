@@ -8,6 +8,7 @@ from .models import User
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.exceptions import TokenError
 
+
             # ========================== logi section ======================
 
 class LoginView(APIView):
@@ -23,6 +24,8 @@ class LoginView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
             user=authenticate(username=user_obj.username,password=password)
+            
+            
             if user :
                 refresh=RefreshToken.for_user(user)
                 access=refresh.access_token
@@ -69,13 +72,42 @@ class RegisterView(APIView):
     
 class UserDetailView(APIView):
     
-    def get(self, request, id):
+    def get(self, request, id=None):
+        
+        if id:
+            try:
+                user = User.objects.get(id=id)
+            except User.DoesNotExist:
+                return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            serializer = UserRegisterserializer(user)
+            return Response(serializer.data)
+        
+        user=User.objects.all()
+        serializer=UserRegisterserializer(user,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+        
+    def patch(self, request, id):
+            try:
+                user = User.objects.get(id=id)
+            except User.DoesNotExist:
+                return Response({"error": "user not found"},status=status.HTTP_404_NOT_FOUND)
+            serializer = UserRegisterserializer(user,data=request.data,partial=True )
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+
+    
+    def delete(self, request, id):
         try:
             user = User.objects.get(id=id)
         except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = UserRegisterserializer(user)
-        return Response(serializer.data)
+            return Response({"error": "user not found"},status=status.HTTP_404_NOT_FOUND)
+
+        user.delete()
+        return Response({"message": "user deleted successfully"},status=status.HTTP_204_NO_CONTENT)
+    
     
     
 class MeView(APIView):
@@ -83,7 +115,7 @@ class MeView(APIView):
 
     def get(self, request):
         serializer = UserRegisterserializer(request.user)
-        return Response(serializer.data)
+        return Response(serializer.data,status=status.HTTP_200_OK)
    
 #    ================================== logout section=========================
    
@@ -94,10 +126,12 @@ class Logout(APIView):
         response.delete_cookie("refresh_token")
         return response
     
+    
+    
 class RefreshView(APIView):
 
     def post(self, request):
-        # Get refresh token from cookies
+       
         refresh_token = request.COOKIES.get("refresh_token")
 
         if not refresh_token:
@@ -107,10 +141,8 @@ class RefreshView(APIView):
             )
 
         try:
-            # Validate refresh token
             refresh = RefreshToken(refresh_token)
 
-            # Generate new access token
             new_access_token = str(refresh.access_token)
 
             response = Response(
@@ -118,15 +150,14 @@ class RefreshView(APIView):
                 status=status.HTTP_200_OK
             )
 
-            # Set new access token cookie
             response.set_cookie(
                 key="access_token",
                 value=new_access_token,
                 httponly=True,
-                secure=False,     # change to True in production
-                samesite="Lax",   # or "None" if using different frontend domain
+                secure=False,     
+                samesite="Lax",   
                 path="/",
-                max_age=60 * 15   # 15 minutes
+                max_age=60 * 15   
             )
 
             return response
@@ -136,3 +167,8 @@ class RefreshView(APIView):
                 {"error": "Invalid or expired refresh token"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
+            
+            
+            
+        
+    

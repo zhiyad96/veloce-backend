@@ -26,7 +26,8 @@ class OrderSerializer(ModelSerializer):
 
     items = OrderItemSerializer(many=True, read_only=True)
     address = AddressSerializer(read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
 
     class Meta:
         model = Order
-        fields = ["id", "status", "total_price", "created_at", "items","address"]
+        fields = ["id", "status", "total_price", "created_at", "items","address","username"]
