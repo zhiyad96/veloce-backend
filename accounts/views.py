@@ -7,11 +7,91 @@ from .serializers import UserLoginserializer,UserRegisterserializer
 from .models import User
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.exceptions import TokenError
+import requests
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
+
+
+
+        #===================== google login view ==============
+        
+        
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        token = request.data.get("token")
+
+        if not token:
+            return Response({"error": "Token required"}, status=400)
+
+        google_response = requests.get(
+            f"https://oauth2.googleapis.com/tokeninfo?id_token={token}"
+        )
+
+        if google_response.status_code != 200:
+            return Response({"error": "Invalid token"}, status=400)
+
+        data = google_response.json()
+        if data.get("aud") != "1057639794290-p47jbkpidvecn1kmv7k7nqdpgdvnapev.apps.googleusercontent.com":
+            return Response({"error": "Invalid audience"}, status=400)
+
+        email = data.get("email")
+        name=data.get("given_name")
+        if not email:
+            return Response({"error": "Email not found"}, status=400)
+
+        user,_ = User.objects.get_or_create(
+            email=email,
+            defaults={"username": name}
+        )
+        
+        if not user.is_active:
+            return Response({"error": "User is blocked"}, status=403)
+        
+        refresh=RefreshToken.for_user(user)
+
+        response= Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "email": user.email,
+        })
+        
+        
+        access=refresh.access_token
+        response= Response({
+        "refresh":str(refresh),
+        "access":str(refresh.access_token)
+        })
+        response.set_cookie(
+        key="access_token",
+        value=str(access),
+        httponly=True,
+        secure=False,
+        samesite="Lax",
+        path="/",
+        max_age=60 * 15
+        )
+            
+        response.set_cookie(
+                    key="refresh_token",
+                    value=str(refresh),
+                    httponly=True,
+                    secure=False,
+                    samesite="Lax",
+                    path="/",
+                    max_age=60 * 60 * 24 * 7
+                )
+        return response
+        
+        
             # ========================== logi section ======================
 
 class LoginView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self,request):
         serializer=UserLoginserializer(data=request.data)
         if serializer.is_valid():
@@ -61,6 +141,7 @@ class LoginView(APIView):
         # ==============================registration section =======================
         
 class RegisterView(APIView):
+    permission_classes = [AllowAny]
     def post(self,request):
         serializer=UserRegisterserializer(data=request.data)
         if serializer.is_valid():
@@ -129,6 +210,7 @@ class Logout(APIView):
     
     
 class RefreshView(APIView):
+    permission_classes = [AllowAny]
 
     def post(self, request):
        
@@ -170,5 +252,36 @@ class RefreshView(APIView):
             
             
             
+class ProfileUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        user = request.user
+
+        serializer = UserRegisterserializer(
+            user, data=request.data, partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
+            
         
+    # ============================  cookies jwt authenication ==================
     
+class CookieJWTAuthentication(JWTAuthentication):
+    def authenticate(self, request):
+        header = self.get_header(request)
+
+        if header is None:
+            raw_token = request.COOKIES.get("access_token")
+        else:
+            raw_token = self.get_raw_token(header)
+
+        if raw_token is None:
+            return None
+
+        validated_token = self.get_validated_token(raw_token)
+        return self.get_user(validated_token), validated_token

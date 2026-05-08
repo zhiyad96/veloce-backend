@@ -30,12 +30,15 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+         'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+    'rest_framework.authtoken',
     'rest_framework',
     "cloudinary",
     "cloudinary_storage",
@@ -47,7 +50,30 @@ INSTALLED_APPS = [
     'Orders',
     'Payments',
     'service',
+     "channels",
+    
+    
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+
+    
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
 ]
+
+
+ASGI_APPLICATION = "Ecomerce.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -56,6 +82,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -133,6 +160,11 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+)
+
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -148,10 +180,10 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
-SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = False
 
-CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = False
 
 
@@ -181,3 +213,28 @@ os.environ["CLOUDINARY_URL"] = "cloudinary://API_KEY:API_SECRET@CLOUD_NAME"
 
 RAZORPAY_KEY_ID = "rzp_test_SQZvSI45H5sLUB"
 RAZORPAY_SECRET = "zxO8gzwHzs4RSp6rtlExOkmb"
+
+
+ACCOUNT_LOGIN_METHODS = {'email'}
+
+ACCOUNT_SIGNUP_FIELDS = [
+    'email*',
+    'password1*',
+    'password2*',
+]
+
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+
+SITE_ID = 1
+
+
+REST_AUTH = {
+    "TOKEN_MODEL": None,
+}
+
+
+
+
+
+
+

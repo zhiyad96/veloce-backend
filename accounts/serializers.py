@@ -17,6 +17,8 @@ class UserRegisterserializer(ModelSerializer):
             username=validated_data["username"],
             email=validated_data["email"],
             phone_number=validated_data["phone_number"],
+            role=validated_data.get("role", "user"), 
+            is_active=True
         )
         user.set_password(validated_data["password"])
         user.save()

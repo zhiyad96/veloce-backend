@@ -30,4 +30,15 @@ class OrderSerializer(ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ["id", "status", "total_price", "created_at", "items","address","username"]
+        fields = [
+            "id",
+            "status",
+            "checkout_mode",
+            "total_price",
+            "payment_id",
+            "razorpay_order_id",
+            "created_at",
+            "items",
+            "address",
+            "username",
+        ]

@@ -6,6 +6,7 @@ from Cart.models import Cart
 from .models import Order, OrderItem,Address
 from .serializers import AddressSerializer,OrderSerializer
 from service.revenue import current_month_revenue,avg_order_value
+from .websocket import send_order_status
 
 
 
@@ -113,6 +114,7 @@ class UpdateOrderStatus(APIView):
                 new_status = request.data.get("status")
                 order.status = new_status
                 order.save()
+                send_order_status(order.user.id,order.id,order.status)
                 return Response({"message": "Order status updated"})
             else:
                 return Response({"error": "Invalid role"}, status=403)

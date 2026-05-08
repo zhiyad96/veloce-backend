@@ -5,7 +5,7 @@ from rest_framework import status
 from .models import Product,Category,ProductImage
 from rest_framework.parsers import MultiPartParser,FormParser
 from rest_framework.pagination import PageNumberPagination
-from django.db.models import Q
+from django.db.models import Q,Sum, F
 from django.http import Http404
 
 
@@ -75,10 +75,11 @@ class paginationclass(PageNumberPagination):
 class Productlist(APIView):
 
     def get(self, request):
-        products = Product.objects.all()
+        products = Product.objects.all().order_by("-id")
 
         # ================= SEARCH =================
         search = request.GET.get("search")
+        print(request.GET.get("search"))
         if search:
             products = products.filter(
                 Q(name__icontains=search) |
@@ -104,20 +105,34 @@ class Productlist(APIView):
 
         elif sort == "name-z-a":
             products = products.order_by("-name")
+            
+            
+            
+        total_products = products.count()
+        total_value = products.aggregate(
+        total=Sum(F("price")))["total"] or 0
+        is_active=products.filter(is_active=True).count()
 
         # ================= PAGINATION CONTROL =================
         paginate = request.GET.get("paginate")
 
-        # 👉 If paginate=false → return ALL products
         if paginate == "false":
             serializer = Productserializer(products, many=True)
             return Response(serializer.data)
 
-        # 👉 Default → paginated response
         paginator = paginationclass()
         paginated_products = paginator.paginate_queryset(products, request)
         serializer = Productserializer(paginated_products, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        response= paginator.get_paginated_response(serializer.data)
+    
+    
+    
+        response.data["total_products"] = total_products
+        response.data["total_value"] = total_value
+        response.data["is_active"]=is_active
+        
+
+        return response
     
     
         # ==============================productdetails========================
